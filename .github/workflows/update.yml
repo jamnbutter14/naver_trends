@@ -1,0 +1,28 @@
+name: Update trends
+
+on:
+  schedule:
+    - cron: "0 21 * * *"   # 21:00 UTC = 06:00 Korea time, every day
+  workflow_dispatch:        # lets you press a "Run" button manually
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install playwright
+      - run: playwright install --with-deps chromium
+      - run: python fetch_trends.py
+      - name: Save results
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add trends.json
+          git commit -m "Update trends" || echo "No changes"
+          git push
