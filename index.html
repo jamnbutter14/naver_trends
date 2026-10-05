@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CORTIS 검색 트렌드</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  html,body{height:100%;margin:0}
+  body{font-family:system-ui,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;background:#fff;color:#222}
+  .w{padding:12px;height:100%;box-sizing:border-box;display:flex;flex-direction:column}
+  h1{font-size:15px;margin:0 0 4px}
+  p{font-size:12px;color:#777;margin:0 0 8px}
+  .c{flex:1;min-height:0;position:relative}
+  @media(prefers-color-scheme:dark){body{background:#16181c;color:#eee}}
+</style>
+</head>
+<body>
+<div class="w">
+  <h1>CORTIS 멤버별 네이버 검색 트렌드</h1>
+  <p id="info">불러오는 중…</p>
+  <div class="c"><canvas id="ch"></canvas></div>
+</div>
+<script>
+const colors = ["#e4572e", "#17a398", "#f3a712", "#4361ee", "#9b5de5"];
+const info = document.getElementById("info");
+
+fetch("trends.json?" + Date.now())
+  .then(r => r.json())
+  .then(j => {
+    // find the captured response that holds the chart series
+    const hit = (j.responses || []).map(r => r.data)
+      .find(d => Array.isArray(d.results) && d.results[0] && Array.isArray(d.results[0].data));
+    if (!hit) {
+      info.textContent = "데이터 형식을 인식하지 못했습니다. trends.json 구조를 확인하세요.";
+      return;
+    }
+    info.textContent = j.startDate + " ~ " + j.endDate + " · 일간 · 상대값(최댓값=100)";
+    new Chart(document.getElementById("ch"), {
+      type: "line",
+      data: {
+        labels: hit.results[0].data.map(x => x.period.slice(5)),
+        datasets: hit.results.map((s, i) => ({
+          label: s.title,
+          data: s.data.map(x => x.ratio),
+          borderColor: colors[i % 5],
+          backgroundColor: colors[i % 5],
+          tension: 0.3, pointRadius: 0, borderWidth: 2
+        }))
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        scales: { y: { beginAtZero: true, max: 100 } }
+      }
+    });
+  })
+  .catch(() => { info.textContent = "trends.json을 불러오지 못했습니다."; });
+</script>
+</body>
+</html>
